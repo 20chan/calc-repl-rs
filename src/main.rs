@@ -27,6 +27,8 @@ macro_rules! create_binary_parser {
 
 fn main() {
     loop {
+        print!("> ");
+        io::Write::flush(&mut io::stdout()).expect("error flushing stdout");
         let mut input = String::new();
         io::stdin()
             .read_line(&mut input)
