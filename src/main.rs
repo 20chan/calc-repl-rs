@@ -4,6 +4,27 @@ use Op::*;
 use SyntaxTree::*;
 use Token::*;
 
+macro_rules! create_binary_parser {
+    ($name:ident $next:ident $($op:pat => $typ:ident),+) => {
+        fn $name(toks: &Vec<Token>, i: &mut usize) -> Result<SyntaxTree, String> {
+            let l = $next(toks, i)?;
+            if i >= &mut toks.len() {
+                return Ok(l);
+            }
+            $(
+                if let $op = toks[*i] {
+                    let o = $typ;
+                    *i += 1;
+                    let r = $name(&toks, i)?;
+                    return Ok(Bin(Box::new(l), Box::new(r), o));
+                }
+            )+
+
+            return Ok(l);
+        }
+    };
+}
+
 fn main() {
     loop {
         let mut input = String::new();
@@ -11,15 +32,43 @@ fn main() {
             .read_line(&mut input)
             .expect("error reading line");
 
-        lex(&input)
-            .iter()
-            .map(|a| println!("{:?}", a))
-            .collect::<Vec<_>>();
+        println!("{:?}", parse(&input).unwrap());
     }
 }
 
-fn parse(code: &str) -> SyntaxTree {
-    unimplemented!();
+fn parse(code: &str) -> Result<SyntaxTree, String> {
+    let lexed = lex(&code);
+    let mut i = 0;
+    parse_bin(&lexed, &mut i)
+}
+
+create_binary_parser!(parse_bin parse_term Op('+') => Plus, Op('-') => Minus);
+create_binary_parser!(parse_term parse_atom Op('*') => Mult, Op('/') => Divide);
+
+fn parse_atom(toks: &Vec<Token>, i: &mut usize) -> Result<SyntaxTree, String> {
+    match toks[*i] {
+        ParenL => {
+            *i += 1;
+            let res = parse_bin(&toks, i)?;
+            if *i >= toks.len() {
+                return Err(String::from("parse_atom: expected ) but nothing"));
+            }
+            if let ParenR = toks[*i] {
+            } else {
+                return Err(String::from("parse_atom: mismatch )"));
+            }
+            *i += 1;
+            Ok(res)
+        }
+        Digit(n) => {
+            *i += 1;
+            Ok(Num(n))
+        }
+        ref n => Err(String::from(format!(
+            "parse_atom: not expecting token {:?}",
+            n
+        ))),
+    }
 }
 
 fn lex(code: &str) -> Vec<Token> {
@@ -50,11 +99,13 @@ fn lex(code: &str) -> Vec<Token> {
     res
 }
 
+#[derive(Debug)]
 enum SyntaxTree {
     Bin(Box<SyntaxTree>, Box<SyntaxTree>, Op),
     Num(usize),
 }
 
+#[derive(Debug)]
 enum Op {
     Plus,
     Minus,
