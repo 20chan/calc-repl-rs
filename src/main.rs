@@ -138,3 +138,13 @@ enum Token {
     Digit(isize),
     Op(char),
 }
+
+#[test]
+pub fn test_interpreter() {
+    let assert = |s, i| assert_eq!(execute(parse(s).expect("failed parsing")), i);
+    assert("34\n", 34);
+    assert("1+2\n", 3);
+    assert("4/2\n", 2);
+    assert("4*7/2\n", 14);
+    assert("2*(1+3)\n", 8);
+}
