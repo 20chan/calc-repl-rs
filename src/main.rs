@@ -32,7 +32,23 @@ fn main() {
             .read_line(&mut input)
             .expect("error reading line");
 
-        println!("{:?}", parse(&input).unwrap());
+        println!("{}", execute(parse(&input).unwrap()));
+    }
+}
+
+fn execute(tree: SyntaxTree) -> isize {
+    match tree {
+        Num(n) => n,
+        Bin(l, r, o) => {
+            let l = execute(*l);
+            let r = execute(*r);
+            match o {
+                Plus => l + r,
+                Minus => l - r,
+                Mult => l * r,
+                Divide => l / r,
+            }
+        }
     }
 }
 
@@ -102,7 +118,7 @@ fn lex(code: &str) -> Vec<Token> {
 #[derive(Debug)]
 enum SyntaxTree {
     Bin(Box<SyntaxTree>, Box<SyntaxTree>, Op),
-    Num(usize),
+    Num(isize),
 }
 
 #[derive(Debug)]
@@ -117,6 +133,6 @@ enum Op {
 enum Token {
     ParenL,
     ParenR,
-    Digit(usize),
+    Digit(isize),
     Op(char),
 }
